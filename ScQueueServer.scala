@@ -5,9 +5,9 @@ import java.util.Scanner
 
 class ScQueueServer(val port: Int, val socketHostName: String, val socketPort: Int) {
   val server = new ServerSocket(port)
-  private val queueSim = scala.collection.mutable.ListBuffer[(String, Thread)]()
-  private val logStr = new scala.collection.mutable.StringBuilder
-  private var isRunning = true
+  val queueSim = scala.collection.mutable.ListBuffer[(String, Thread)]()
+  val logStr = new scala.collection.mutable.StringBuilder
+  var isRunning = true
 
   private def bosWrite(bs: BufferedOutputStream, str: String): Unit = {
     bs.write(str.getBytes())
@@ -44,17 +44,21 @@ class ScQueueServer(val port: Int, val socketHostName: String, val socketPort: I
                   override def run(): Unit = {
                     oPrecThread match {
                       case Some((pJobName, pThread)) => {
+                        println(jobName + " wait until " + pJobName + " is done\n")
                         logStr.++=(jobName + " wait until " + pJobName + " is done\n")
                         pThread.join()
                         queueSim.remove(0)
                       }
                       case None => {}
                     }
+                    println("Send " + jobName + " to MaBoSS Server\n")
                     logStr ++= ("Send " + jobName + " to MaBoSS Server\n")
                     ServClient(socketHostName, socketPort) match {
                       case Some(sCli) => {
                         sCli.send(mbssInput) match {
                           case Some(str) => {
+                            println(jobName + " is done\n")
+                            logStr.++=(jobName + " is done\n")
                             bosWrite(bos, str)
                           }
                           case None => {
